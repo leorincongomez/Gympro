@@ -65,22 +65,48 @@ export function CreateMealPlanDialog({ open, onOpenChange }: CreateMealPlanDialo
     setMeals(meals.map((meal) => (meal.id === id ? { ...meal, [field]: value } : meal)))
   }
 
-  const handleCreate = () => {
-    console.log("Crear plan alimenticio:", { name, description, totalCalories, meals })
-    onOpenChange(false)
-    // Reset form
-    setName("")
-    setDescription("")
-    setTotalCalories("")
-    setMeals([
-      {
-        id: "1",
-        name: "",
-        time: "",
-        foods: "",
-        calories: "",
-      },
-    ])
+  const handleCreate = async () => {
+    if (!name || !totalCalories || meals.length === 0 || meals.some(m => !m.name || !m.calories)) {
+      alert("Completa todos los campos requeridos")
+      return
+    }
+
+    const payload = {
+      name,
+      description,
+      calories: parseInt(totalCalories),
+      duration: 1, // ✅ número, no texto
+      meals: meals.map(m => ({
+        name: m.name,
+        time: m.time,
+        foods: m.foods.split(',').map(f => f.trim()), // ✅ arreglo
+        calories: parseInt(m.calories),
+      })),
+      tags: []
+    }
+
+
+    try {
+      const response = await fetch("/api/meal-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || "Error al crear")
+      }
+
+      onOpenChange(false)
+      setName("")
+      setDescription("")
+      setTotalCalories("")
+      setMeals([{ id: "1", name: "", time: "", foods: "", calories: "" }])
+      window.location.reload()
+    } catch (err: any) {
+      alert(err.message || "Error al crear el plan")
+    }
   }
 
   return (

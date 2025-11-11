@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card"
 import { Plus, Trash2, ImageIcon } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { set } from "mongoose"
 
 interface CreateRoutineDialogProps {
   open: boolean
@@ -24,6 +25,7 @@ interface CreateRoutineDialogProps {
 }
 
 interface ExerciseForm {
+  [x: string]: any
   id: string
   name: string
   sets: string
@@ -73,26 +75,60 @@ export function CreateRoutineDialog({ open, onOpenChange }: CreateRoutineDialogP
     setExercises(exercises.map((ex) => (ex.id === id ? { ...ex, [field]: value } : ex)))
   }
 
-  const handleCreate = () => {
-    console.log("Crear rutina:", { name, description, duration, difficulty, exercises })
-    onOpenChange(false)
-    // Reset form
-    setName("")
-    setDescription("")
-    setDuration("")
-    setDifficulty("intermediate")
-    setExercises([
-      {
-        id: "1",
-        name: "",
-        sets: "",
-        reps: "",
-        rest: "",
-        instructions: "",
-        image: "",
-      },
-    ])
-  }
+  const handleCreate = async () => {
+    if (!name?.trim() || !description?.trim() || !duration?.trim() || exercises.length === 0) {
+      alert("Completa todos los campos de la rutina");
+      return;
+    }
+
+    if (exercises.some(ex =>
+      !ex.name?.trim() ||
+      !ex.sets?.trim() ||
+      !ex.reps?.trim() ||
+      !ex.rest?.trim() ||
+      !ex.instructions?.trim()
+    )) {
+      alert("Completa todos los campos de los ejercicios (nombre, series, repeticiones, descanso, instrucciones)");
+      return;
+    }
+
+    const payload = {
+      name: name.trim(),
+      description: description.trim(),
+      duration: duration.trim(),
+      difficulty,
+      exercises: exercises.map(ex => ({
+        name: ex.name.trim(),
+        sets: ex.sets.trim(),
+        reps: ex.reps.trim(),
+        rest: ex.rest.trim(),
+        instructions: ex.instructions.trim(),
+        image: ex.image?.trim() || "",
+        muscleGroups: ex.muscleGroups || ['legs'],
+      })),
+      tags: []
+    };
+
+    try {
+      const response = await fetch("/api/routines", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include", // ✅ muy importante
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Error al crear la rutina");
+      }
+
+      onOpenChange(false);
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

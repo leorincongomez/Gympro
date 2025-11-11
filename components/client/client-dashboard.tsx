@@ -159,10 +159,10 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
             <UserIcon className="mr-2 h-4 w-4" />
             Mi Perfil
           </Button>
-          <Button onClick={() => setShowCreateRoutine(true)}>
+          {/* <Button onClick={() => setShowCreateRoutine(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Crear Rutina
-          </Button>
+          </Button> */}
         </div>
       </div>
 

@@ -10,6 +10,7 @@ export interface IRoutine extends Document {
     sets: number;
     reps: string;
     rest: string;
+    instructions: string;
     order: number;
   }[];
   tags: string[];
@@ -65,6 +66,7 @@ const RoutineSchema = new Schema<IRoutine>({
       required: true,
       trim: true
     },
+    instructions: { type: String, required: true, trim: true },
     order: {
       type: Number,
       required: true,

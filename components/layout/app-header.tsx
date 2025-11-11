@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Dumbbell, LogOut, Settings, UserIcon } from "lucide-react"
 import type { User } from "@/lib/auth"
+import { useState } from "react"
 
 interface AppHeaderProps {
   user: User
@@ -19,6 +20,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ user, onLogout }: AppHeaderProps) {
+  const [showProfile, setShowProfile] = useState(false)
   const roleLabels = {
     admin: "Administrador",
     trainer: "Entrenador",
@@ -62,7 +64,7 @@ export function AppHeader({ user, onLogout }: AppHeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <UserIcon className="mr-2 h-4 w-4" />
-              <span>Perfil</span>
+              <span onClick={() => setShowProfile(true)}>Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />

@@ -98,72 +98,112 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Crear nueva rutina
+// POST - Crear nueva rutina (con creación automática de ejercicios si no existen)
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
     const user = await verifyAuth(req);
 
-    // Todos los usuarios autenticados pueden crear rutinas (clientes, trainers y admins)
-
     const data = await req.json();
-    const { name, description, duration, difficulty, exercises, tags } = data;
+    const { name, description, duration, difficulty, exercises: rawExercises, tags } = data;
 
-    // Validar datos requeridos
-    if (!name || !description || !duration || !exercises) {
+    // Validar campos básicos
+    if (!name || !description || !duration || !Array.isArray(rawExercises) || rawExercises.length === 0) {
       return NextResponse.json(
-        { error: 'Todos los campos requeridos deben ser proporcionados' },
+        { error: 'Faltan campos requeridos o ejercicios' },
         { status: 400 }
       );
     }
 
-    // Validar que los ejercicios sean válidos
-    if (!Array.isArray(exercises) || exercises.length === 0) {
-      return NextResponse.json(
-        { error: 'Debe incluir al menos un ejercicio' },
-        { status: 400 }
-      );
-    }
+    // Procesar cada ejercicio: buscar o crear
+    const processedExercises = await Promise.all(
+      rawExercises.map(async (ex: any, index: number) => {
+        const { name: exName, sets, reps, rest, instructions, image } = ex;
 
-    // Verificar que todos los ejercicios existan
-    const exerciseIds = exercises.map(ex => ex.exercise);
-    const existingExercises = await Exercise.find({ _id: { $in: exerciseIds } });
-    
-    if (existingExercises.length !== exerciseIds.length) {
-      return NextResponse.json(
-        { error: 'Algunos ejercicios no existen' },
-        { status: 400 }
-      );
-    }
+        if (!exName || !sets || !reps || !rest || !instructions) {
+          throw new Error(`Faltan datos en el ejercicio ${index + 1}`);
+        }
+
+        // Convertir sets a número (si es rango como "8-12", toma el primero)
+        const setsNumber = (() => {
+          const num = parseInt(sets);
+          return isNaN(num) ? 3 : num; // default 3 si no es número
+        })();
+
+        // Buscar ejercicio por nombre (case insensitive)
+        let exercise = await Exercise.findOne({
+          name: { $regex: `^${exName}$`, $options: 'i' },
+          createdBy: user._id // opcional: solo del usuario
+        });
+
+        // Si no existe, crearlo
+        if (!exercise) {
+          exercise = new Exercise({
+            name: exName.trim(),
+            sets: setsNumber,
+            reps: reps.trim(),
+            rest: rest.trim(),
+            image: image?.trim() || '/default-exercise.png',
+            instructions: instructions.trim(),
+            muscleGroups: ex.muscleGroups || ['legs'],
+            equipment: [],
+            difficulty: difficulty || 'intermediate',
+            createdBy: user._id
+          });
+
+          await exercise.save();
+        }
+
+        // Devolver para la rutina
+        return {
+          exercise: exercise._id,
+          sets: setsNumber,
+          reps: reps.trim(),
+          rest: rest.trim(),
+          instructions: instructions.trim(),
+          order: index + 1
+        };
+      })
+    );
 
     // Crear la rutina
     const routine = new Routine({
-      name,
-      description,
-      duration,
-      difficulty: difficulty || 'beginner',
-      exercises,
+      name: name.trim(),
+      description: description.trim(),
+      duration: duration.trim(),
+      difficulty: difficulty || 'intermediate',
+      exercises: processedExercises,
       tags: tags || [],
       createdBy: user._id
     });
 
     await routine.save();
 
-    // Obtener la rutina creada con los datos poblados
-    const createdRoutine = await Routine.findById(routine._id)
+    // Poblar para respuesta
+    const populatedRoutine = await Routine.findById(routine._id)
       .populate('createdBy', 'name email')
-      .populate('exercises.exercise', 'name image muscleGroups equipment');
+      .populate('exercises.exercise', 'name image muscleGroups equipment instructions');
 
-    return NextResponse.json({
-      message: 'Rutina creada exitosamente',
-      routine: createdRoutine
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        message: 'Rutina creada exitosamente',
+        routine: populatedRoutine
+      },
+      { status: 201 }
+    );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creando rutina:', error);
 
-    if ((error as any).name === 'ValidationError') {
-      const errors = Object.values((error as any).errors).map((err: any) => err.message);
+    if (error.message.includes('ejercicio')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map((err: any) => err.message);
       return NextResponse.json(
         { error: 'Error de validación', details: errors },
         { status: 400 }

@@ -8,6 +8,7 @@ import { MealPlansLibrary } from "./meal-plans-library"
 import { Users, Dumbbell, UtensilsCrossed, BarChart3 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 
+
 interface TrainerDashboardProps {
   trainerId: string
 }
@@ -24,6 +25,7 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
           </h2>
           <p className="text-muted-foreground mt-2 text-lg">Gestiona tus clientes, rutinas y planes alimenticios</p>
         </div>
+
 
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="p-4 border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-transparent">
