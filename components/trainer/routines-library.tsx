@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -21,12 +21,22 @@ export function RoutinesLibrary({ trainerId }: RoutinesLibraryProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null)
+  const [routines, setRoutines] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  const filteredRoutines = mockRoutines.filter(
-    (routine) =>
-      routine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      routine.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  // const filteredRoutines = mockRoutines.filter(
+  //   (routine) =>
+  //     routine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     routine.description.toLowerCase().includes(searchQuery.toLowerCase()),
+  // )
+
+  const filteredRoutines = routines.filter(
+  (routine: any) =>
+    routine.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    routine.description?.toLowerCase().includes(searchQuery.toLowerCase())
+)
+
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -54,6 +64,39 @@ export function RoutinesLibrary({ trainerId }: RoutinesLibraryProps) {
     }
   }
 
+
+  useEffect(() => {
+    async function fetchRoutines() {
+      try {
+        setLoading(true)
+        setError("")
+
+        const res = await fetch("/api/routines", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("auth-token")}`
+          }
+        })
+
+        if (!res.ok) throw new Error("Error al obtener rutinas")
+
+        const data = await res.json()
+        setRoutines(data.routines)
+      }
+      catch (err: any) {
+        setError(err.message)
+      }
+      finally {
+        setLoading(false)
+      }
+    }
+    fetchRoutines()
+  }, [])
+
+  if (loading) return <p>Cargando rutinas...</p>
+  if (error) return <p>Error: {error}</p>
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -73,9 +116,9 @@ export function RoutinesLibrary({ trainerId }: RoutinesLibraryProps) {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredRoutines.map((routine) => (
+        {filteredRoutines.map((routine: any) => (
           <Card
-            key={routine.id}
+            key={routine._id}
             className="overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50"
           >
             {/* Header de la tarjeta con gradiente */}

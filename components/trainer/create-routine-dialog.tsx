@@ -123,7 +123,7 @@ export function CreateRoutineDialog({ open, onOpenChange }: CreateRoutineDialogP
       }
 
       onOpenChange(false);
-      window.location.reload();
+      // window.location.reload();
     } catch (err: any) {
       alert(err.message);
     }

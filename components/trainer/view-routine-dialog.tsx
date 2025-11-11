@@ -26,6 +26,8 @@ export function ViewRoutineDialog({ open, onOpenChange, routine }: ViewRoutineDi
       default:
         return difficulty
     }
+
+    
   }
 
   return (

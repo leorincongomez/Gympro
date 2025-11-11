@@ -103,7 +103,7 @@ export function CreateMealPlanDialog({ open, onOpenChange }: CreateMealPlanDialo
       setDescription("")
       setTotalCalories("")
       setMeals([{ id: "1", name: "", time: "", foods: "", calories: "" }])
-      window.location.reload()
+      // window.location.reload()
     } catch (err: any) {
       alert(err.message || "Error al crear el plan")
     }

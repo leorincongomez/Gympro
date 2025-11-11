@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -21,8 +21,17 @@ export function MealPlansLibrary({ trainerId }: MealPlansLibraryProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<MealPlan | null>(null)
+  const [mealPlans, setMealsPlans] = useState<MealPlan[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  const filteredPlans = mockMealPlans.filter(
+  // const filteredPlans = mockMealPlans.filter(
+  //   (plan) =>
+  //     plan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //     plan.description.toLowerCase().includes(searchQuery.toLowerCase()),
+  // )
+
+  const filteredPlans = mealPlans.filter(
     (plan) =>
       plan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       plan.description.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -33,6 +42,39 @@ export function MealPlansLibrary({ trainerId }: MealPlansLibraryProps) {
     if (calories < 2500) return "text-green-600 dark:text-green-400"
     return "text-orange-600 dark:text-orange-400"
   }
+
+  useEffect(() => {
+    async function fetchMealsPlans() {
+      try {
+        setLoading(true)
+        setError("")
+
+        const res = await fetch("/api/meal-plans", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("auth-token")}`
+          }
+        })
+        if (!res.ok) throw new Error("Error al obtener planes alimenticios")
+
+        const data = await res.json()
+        setMealsPlans(data.mealPlans)
+      }
+      catch (err: any) {
+        setError(err.message)
+      }
+      finally {
+        setLoading(false)
+      }
+
+    }
+
+    fetchMealsPlans()
+  }, [])
+
+  if (loading) return <p>Cargando rutinas...</p>
+  if (error) return <p>Error: {error}</p>
 
   return (
     <div className="space-y-6">
@@ -53,9 +95,9 @@ export function MealPlansLibrary({ trainerId }: MealPlansLibraryProps) {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredPlans.map((plan) => (
+        {filteredPlans.map((plan: any) => (
           <Card
-            key={plan.id}
+            key={plan._id}
             className="overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-accent/50"
           >
             {/* Header de la tarjeta con gradiente */}
@@ -90,7 +132,7 @@ export function MealPlansLibrary({ trainerId }: MealPlansLibraryProps) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase">Comidas incluidas:</p>
                 <div className="flex flex-wrap gap-1">
-                  {plan.meals.map((meal) => (
+                  {plan.meals.map((meal: { id: Key | null | undefined; name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined }) => (
                     <Badge key={meal.id} variant="outline" className="text-xs">
                       {meal.name}
                     </Badge>
