@@ -3,13 +3,14 @@ import connectDB from '@/lib/mongodb';
 import Routine from '@/lib/models/Routine';
 import User from '@/lib/models/User';
 import jwt from 'jsonwebtoken';
+import Exercise from '@/lib/models/Exercise';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 // Middleware para verificar autenticación
 async function verifyAuth(req: NextRequest) {
-  const token = req.cookies.get('auth-token')?.value || 
-                req.headers.get('authorization')?.replace('Bearer ', '');
+  const token = req.cookies.get('auth-token')?.value ||
+    req.headers.get('authorization')?.replace('Bearer ', '');
 
   if (!token) {
     throw new Error('Token no proporcionado');
@@ -30,21 +31,21 @@ interface Props {
 }
 
 // GET - Obtener rutina por ID
-export async function GET(req: NextRequest, { params }: Props) {
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     await connectDB();
     const user = await verifyAuth(req);
 
-    const routine = await Routine.findById(params.id)
-      .populate('createdBy', 'name email')
-      .populate('exercises.exercise', 'name image muscleGroups equipment instructions');
+    const routine = await Routine.findById(id)
+      .populate("createdBy", "name email")
+      .populate("exercises.exercise", "name image muscleGroups equipment");
 
     if (!routine) {
-      return NextResponse.json(
-        { error: 'Rutina no encontrada' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Rutina no encontrada" }, { status: 404 });
     }
+
+
 
     // Verificar permisos
     if (user.role === 'client' && routine.createdBy._id.toString() !== user._id.toString()) {
@@ -72,78 +73,89 @@ export async function GET(req: NextRequest, { params }: Props) {
   }
 }
 
-// PUT - Actualizar rutina
-export async function PUT(req: NextRequest, { params }: Props) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+
   try {
+    const { id } = await context.params;
     await connectDB();
     const user = await verifyAuth(req);
+    const body = await req.json();
 
-    const routine = await Routine.findById(params.id);
+    const exercisesWithIds = [];
 
-    if (!routine) {
+    // Recorremos los ejercicios del body
+    for (const ex of body.exercises) {
+      let exerciseId = ex._id || ex.exercise;
+
+      // Si no tiene ID, creamos un nuevo ejercicio
+      if (!exerciseId) {
+        const newExercise = await Exercise.create({
+          name: ex.name || "Ejercicio sin nombre",
+          instructions: ex.instructions || "Sin instrucciones",
+          sets: ex.sets || 1,
+          reps: ex.reps || "1",
+          rest: ex.rest || "0s",
+          image: ex.image || "",
+          muscleGroups: ex.muscleGroups || [],
+          equipment: ex.equipment || [],
+          createdBy: user._id,
+        });
+        exerciseId = newExercise._id;
+      }
+
+      exercisesWithIds.push({
+        exercise: exerciseId,
+        sets: ex.sets,
+        reps: ex.reps,
+        rest: ex.rest,
+        instructions: ex.instructions || "",
+        order: ex.order || 0,
+      });
+    }
+
+    const updatedRoutine = await Routine.findByIdAndUpdate(
+      id,
+      {
+        name: body.name,
+        description: body.description,
+        duration: body.duration,
+        difficulty: body.difficulty,
+        exercises: exercisesWithIds,
+      },
+      { new: true }
+    )
+      .populate("exercises.exercise", "name image muscleGroups equipment");
+
+    if (!updatedRoutine) {
       return NextResponse.json(
-        { error: 'Rutina no encontrada' },
+        { error: "Rutina no encontrada" },
         { status: 404 }
       );
     }
 
-    // Verificar permisos (solo el creador o admin puede editar)
-    if (user.role !== 'admin' && routine.createdBy.toString() !== user._id.toString()) {
-      return NextResponse.json(
-        { error: 'No tienes permisos para editar esta rutina' },
-        { status: 403 }
-      );
-    }
-
-    const data = await req.json();
-    const updateData = { ...data };
-    delete updateData.createdBy; // No permitir cambiar el creador
-
-    // Actualizar la rutina
-    const updatedRoutine = await Routine.findByIdAndUpdate(
-      params.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).populate('createdBy', 'name email')
-     .populate('exercises.exercise', 'name image muscleGroups equipment');
-
-    return NextResponse.json({
-      message: 'Rutina actualizada exitosamente',
-      routine: updatedRoutine
-    });
-
+    return NextResponse.json(updatedRoutine);
   } catch (error) {
-    console.error('Error actualizando rutina:', error);
-
-    if ((error as any).name === 'ValidationError') {
-      const errors = Object.values((error as any).errors).map((err: any) => err.message);
-      return NextResponse.json(
-        { error: 'Error de validación', details: errors },
-        { status: 400 }
-      );
-    }
-
+    console.error("❌ Error actualizando rutina:", error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
+      { error: "Error al actualizar la rutina" },
+      { status: 400 }
     );
   }
 }
 
+
 // DELETE - Eliminar rutina (soft delete)
-export async function DELETE(req: NextRequest, { params }: Props) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     await connectDB();
     const user = await verifyAuth(req);
 
-    const routine = await Routine.findById(params.id);
-
+    const routine = await Routine.findById(id);
     if (!routine) {
-      return NextResponse.json(
-        { error: 'Rutina no encontrada' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Rutina no encontrada" }, { status: 404 });
     }
+
 
     // Verificar permisos (solo el creador o admin puede eliminar)
     if (user.role !== 'admin' && routine.createdBy.toString() !== user._id.toString()) {
@@ -154,7 +166,7 @@ export async function DELETE(req: NextRequest, { params }: Props) {
     }
 
     // Soft delete - marcar como inactivo
-    await Routine.findByIdAndUpdate(params.id, { isActive: false });
+    await Routine.findByIdAndUpdate(id, { isActive: false });
 
     return NextResponse.json({
       message: 'Rutina eliminada exitosamente'

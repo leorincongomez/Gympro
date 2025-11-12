@@ -177,9 +177,7 @@ export function RoutinesLibrary({ trainerId }: RoutinesLibraryProps) {
                 <Button variant="outline" size="sm" onClick={() => console.log("Duplicar", routine.id)}>
                   <Copy className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => console.log("Eliminar", routine.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                
               </div>
             </div>
           </Card>

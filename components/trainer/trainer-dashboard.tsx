@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ClientsView } from "./clients-view"
 import { RoutinesLibrary } from "./routines-library"
@@ -15,6 +15,34 @@ interface TrainerDashboardProps {
 
 export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
   const [activeTab, setActiveTab] = useState("clients")
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDashboardTrainer() {
+      try {
+        const res = await fetch("/api/dashboard/stats", {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("auth-token")}`,
+          },
+        });
+
+        const data = await res.json();
+        setStats(data.stats);
+      }
+      catch (err) {
+        console.log("Error al obtener dashboard", err);
+      }
+      finally {
+        setLoading(false);
+      }
+
+    }
+    fetchDashboardTrainer();
+  }, []);
+
+  if (loading) return <p>Cargando...</p>;
 
   return (
     <div className="space-y-6">
@@ -34,7 +62,7 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">12</p>
+                <p className="text-2xl font-bold">{stats?.myClients}</p>
                 <p className="text-xs text-muted-foreground">Clientes Activos</p>
               </div>
             </div>
@@ -46,7 +74,7 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
                 <Dumbbell className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-bold">8</p>
+                <p className="text-2xl font-bold">{stats?.myRoutines}</p>
                 <p className="text-xs text-muted-foreground">Rutinas Creadas</p>
               </div>
             </div>
@@ -58,7 +86,7 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
                 <UtensilsCrossed className="h-5 w-5 text-chart-3" />
               </div>
               <div>
-                <p className="text-2xl font-bold">6</p>
+                <p className="text-2xl font-bold">{stats?.myMealPlans}</p>
                 <p className="text-xs text-muted-foreground">Planes Alimenticios</p>
               </div>
             </div>
@@ -70,8 +98,8 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
                 <BarChart3 className="h-5 w-5 text-chart-4" />
               </div>
               <div>
-                <p className="text-2xl font-bold">94%</p>
-                <p className="text-xs text-muted-foreground">Tasa de Adherencia</p>
+                <p className="text-2xl font-bold">{stats?.myAssignments}</p>
+                <p className="text-xs text-muted-foreground">Asignaciones Activas</p>
               </div>
             </div>
           </Card>

@@ -69,8 +69,7 @@ const RoutineSchema = new Schema<IRoutine>({
     instructions: { type: String, required: true, trim: true },
     order: {
       type: Number,
-      required: true,
-      min: 1
+      required: false
     }
   }],
   tags: [{
@@ -106,6 +105,7 @@ RoutineSchema.index({ createdBy: 1 });
 RoutineSchema.index({ tags: 1 });
 RoutineSchema.index({ isActive: 1 });
 
+delete mongoose.models.Routine;
 const Routine = mongoose.models.Routine || mongoose.model<IRoutine>('Routine', RoutineSchema);
 
 export default Routine;

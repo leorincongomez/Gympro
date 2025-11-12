@@ -169,9 +169,7 @@ export function MealPlansLibrary({ trainerId }: MealPlansLibraryProps) {
                 <Button variant="outline" size="sm" onClick={() => console.log("Duplicar", plan.id)}>
                   <Copy className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => console.log("Eliminar", plan.id)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                
               </div>
             </div>
           </Card>

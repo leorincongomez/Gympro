@@ -1,5 +1,5 @@
 export interface Routine {
-  id: string
+  _id?: string;
   name: string
   description: string
   duration: string
@@ -19,7 +19,8 @@ export interface Exercise {
 }
 
 export interface MealPlan {
-  id: string
+  _id?: string;
+  id?: string;
   name: string
   description: string
   calories: number
@@ -48,7 +49,7 @@ export interface Assignment {
 
 export const mockRoutines: Routine[] = [
   {
-    id: "r1",
+    _id: "r1",
     name: "Fuerza Total",
     description: "Rutina completa de fuerza para todo el cuerpo",
     duration: "60 min",
@@ -88,7 +89,7 @@ export const mockRoutines: Routine[] = [
     createdBy: "2",
   },
   {
-    id: "r2",
+    _id: "r2",
     name: "Cardio HIIT",
     description: "Entrenamiento de alta intensidad para quemar grasa",
     duration: "30 min",
@@ -121,7 +122,7 @@ export const mockRoutines: Routine[] = [
 
 export const mockMealPlans: MealPlan[] = [
   {
-    id: "m1",
+    _id: "m1",
     name: "Plan Definición",
     description: "Plan bajo en calorías para definición muscular",
     calories: 2000,
@@ -158,7 +159,7 @@ export const mockMealPlans: MealPlan[] = [
     createdBy: "2",
   },
   {
-    id: "m2",
+    _id: "m2",
     name: "Plan Volumen",
     description: "Plan alto en calorías para ganancia muscular",
     calories: 3000,

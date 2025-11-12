@@ -5,11 +5,40 @@ import { UsersTable } from "./users-table"
 import { ActivityFeed } from "./activity-feed"
 import { Users, Dumbbell, TrendingUp } from "lucide-react"
 import { mockUsers } from "@/lib/auth"
+import { useEffect, useState } from "react"
 
 export function AdminDashboard() {
   const totalUsers = mockUsers.length
   const trainers = mockUsers.filter((u) => u.role === "trainer").length
   const clients = mockUsers.filter((u) => u.role === "client").length
+  const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+  
+    useEffect(() => {
+      async function fetchDashboardAdmin() {
+        try {
+          const res = await fetch("/api/dashboard/stats", {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${localStorage.getItem("auth-token")}`,
+            },
+          });
+  
+          const data = await res.json();
+          setStats(data.stats);
+        }
+        catch (err) {
+          console.log("Error al obtener dashboard", err);
+        }
+        finally {
+          setLoading(false);
+        }
+  
+      }
+      fetchDashboardAdmin();
+    }, []);
+  
+    if (loading) return <p>Cargando...</p>;
 
   return (
     <div className="space-y-6">
@@ -21,32 +50,32 @@ export function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Usuarios"
-          value={totalUsers}
+          value={stats?.totalUsers}
           description="Usuarios registrados"
           icon={Users}
           trend={{ value: 12, isPositive: true }}
         />
         <StatsCard
           title="Entrenadores"
-          value={trainers}
+          value={stats?.totalTrainers}
           description="Entrenadores activos"
           icon={Dumbbell}
           trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Clientes"
-          value={clients}
+          value={stats?.totalClients}
           description="Clientes activos"
           icon={Users}
           trend={{ value: 15, isPositive: true }}
         />
-        <StatsCard
+        {/* <StatsCard
           title="Sesiones Activas"
           value="24"
           description="Sesiones este mes"
           icon={TrendingUp}
           trend={{ value: 20, isPositive: true }}
-        />
+        /> */}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -9,8 +9,8 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 
 // Middleware para verificar autenticación
 async function verifyAuth(req: NextRequest) {
-  const token = req.cookies.get('auth-token')?.value || 
-                req.headers.get('authorization')?.replace('Bearer ', '');
+  const token = req.cookies.get('auth-token')?.value ||
+    req.headers.get('authorization')?.replace('Bearer ', '');
 
   if (!token) {
     throw new Error('Token no proporcionado');
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 
     // Construir filtros
     const filters: any = {};
-    
+
     // Solo admins y trainers pueden ver todas las rutinas
     if (user.role === 'client') {
       // Los clientes solo ven rutinas asignadas a ellos
@@ -79,15 +79,39 @@ export async function GET(req: NextRequest) {
       Routine.countDocuments(filters)
     ]);
 
+    // Convertir ObjectIds a strings para evitar problemas en el frontend
+    const formattedRoutines = routines.map(routine => ({
+      ...routine.toObject(),
+      _id: routine._id.toString(),
+      createdBy: routine.createdBy?._id?.toString
+        ? {
+          ...routine.createdBy.toObject(),
+          _id: routine.createdBy._id.toString(),
+        }
+        : routine.createdBy,
+      exercises: routine.exercises.map((ex: any) => ({
+        ...ex.toObject(),
+        _id: ex._id?.toString(),
+        exercise: ex.exercise?._id?.toString
+          ? {
+            ...ex.exercise.toObject(),
+            _id: ex.exercise._id.toString(),
+          }
+          : ex.exercise,
+      })),
+    }));
+
+
     return NextResponse.json({
-      routines,
+      routines: formattedRoutines,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
         totalItems: total,
-        itemsPerPage: limit
-      }
+        itemsPerPage: limit,
+      },
     });
+
 
   } catch (error) {
     console.error('Error obteniendo rutinas:', error);
